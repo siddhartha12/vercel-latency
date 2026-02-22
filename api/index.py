@@ -42,3 +42,5 @@ async def analytics(request: Request):
         }
 
     return result
+
+handler = app
