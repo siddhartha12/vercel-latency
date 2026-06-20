@@ -73,3 +73,7 @@ def analytics(req: AnalyticsRequest):
         }
 
     return result
+
+@app.get("/")
+def health():
+    return {"status": "ok"}
