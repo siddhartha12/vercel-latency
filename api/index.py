@@ -77,7 +77,7 @@ def analytics(req: AnalyticsRequest):
             for row in rows
         ]
 
-        rresult["regions"][region] = {
+        result["regions"][region] = {
             "avg_latency": round(
                 sum(latencies) / len(latencies),
                 2
