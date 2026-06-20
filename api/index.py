@@ -1,6 +1,6 @@
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel
 import json
 import numpy as np
@@ -11,9 +11,9 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
-    allow_credentials=False,
 )
 
 json_path = os.path.join(
@@ -24,19 +24,32 @@ json_path = os.path.join(
 with open(json_path, "r") as f:
     telemetry = json.load(f)
 
+
 class AnalyticsRequest(BaseModel):
     regions: list[str]
     threshold_ms: int
 
 
+CORS_HEADERS = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "*",
+    "Access-Control-Allow-Headers": "*"
+}
+
+
+@app.get("/")
+def health():
+    return JSONResponse(
+        content={"status": "ok"},
+        headers=CORS_HEADERS
+    )
+
+
 @app.options("/")
 def options_handler():
-    return Response(
-        headers={
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "POST, OPTIONS",
-            "Access-Control-Allow-Headers": "*",
-        }
+    return JSONResponse(
+        content={},
+        headers=CORS_HEADERS
     )
 
 
@@ -48,8 +61,7 @@ def analytics(req: AnalyticsRequest):
     for region in req.regions:
 
         rows = [
-            row
-            for row in telemetry
+            row for row in telemetry
             if row["region"] == region
         ]
 
@@ -77,20 +89,12 @@ def analytics(req: AnalyticsRequest):
                 2
             ),
             "breaches": sum(
-                1
-                for x in latencies
+                1 for x in latencies
                 if x > req.threshold_ms
             )
         }
 
     return JSONResponse(
         content=result,
-        headers={
-            "Access-Control-Allow-Origin": "*"
-        }
+        headers=CORS_HEADERS
     )
-
-
-@app.get("/")
-def health():
-    return {"status": "ok"}
