@@ -58,7 +58,7 @@ def options_handler():
 @app.post("/")
 def analytics(req: AnalyticsRequest):
 
-    result = {}
+    result = {"regions": {}}
 
     for region in req.regions:
 
@@ -77,7 +77,7 @@ def analytics(req: AnalyticsRequest):
             for row in rows
         ]
 
-        result[region] = {
+        rresult["regions"][region] = {
             "avg_latency": round(
                 sum(latencies) / len(latencies),
                 2
