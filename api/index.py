@@ -1,46 +1,70 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import numpy as np
+from pydantic import BaseModel
+
 import json
+import numpy as np
 
 app = FastAPI()
 
-# Enable CORS for POST from anywhere
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_methods=["POST"],
-    allow_headers=["*"],
+    allow_headers=["*"]
 )
 
-# Load telemetry once
-with open("q-vercel-latency.json") as f:
+with open("q-vercel-latency.json", "r") as f:
     telemetry = json.load(f)
 
+class AnalyticsRequest(BaseModel):
+    regions: list[str]
+    threshold_ms: int
+
 @app.post("/")
-async def analytics(request: Request):
-    body = await request.json()
-    regions = body.get("regions", [])
-    threshold = body.get("threshold_ms", 0)
+def analytics(req: AnalyticsRequest):
 
     result = {}
 
-    for region in regions:
-        region_data = [r for r in telemetry if r["region"] == region]
+    for region in req.regions:
 
-        if not region_data:
-            continue
+        rows = [
+            row
+            for row in telemetry
+            if row["region"] == region
+        ]
 
-        latencies = [r["latency_ms"] for r in region_data]
-        uptimes = [r["uptime"] for r in region_data]
+        latencies = [
+            row["latency_ms"]
+            for row in rows
+        ]
+
+        uptimes = [
+            row["uptime_pct"]
+            for row in rows
+        ]
 
         result[region] = {
-            "avg_latency": float(np.mean(latencies)),
-            "p95_latency": float(np.percentile(latencies, 95)),
-            "avg_uptime": float(np.mean(uptimes)),
-            "breaches": sum(1 for l in latencies if l > threshold),
+            "avg_latency": round(
+                sum(latencies) / len(latencies),
+                2
+            ),
+
+            "p95_latency": round(
+                float(np.percentile(latencies, 95)),
+                2
+            ),
+
+            "avg_uptime": round(
+                sum(uptimes) / len(uptimes),
+                2
+            ),
+
+            "breaches": sum(
+                1
+                for x in latencies
+                if x > req.threshold_ms
+            )
         }
 
     return result
-
-handler = app
