@@ -29,10 +29,6 @@ class AnalyticsRequest(BaseModel):
     regions: list[str]
     threshold_ms: int
 
-@app.options("/")
-def options_handler():
-    return {}
-
 @app.post("/")
 def analytics(req: AnalyticsRequest):
 
